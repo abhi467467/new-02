@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EduCoach - Learning Platform</title>
+<script src="https://cdn.tailwindcss.com/3.4.16"></script>
+<script>tailwind.config={theme:{extend:{colors:{primary:'#3b82f6',secondary:'#8b5cf6'},borderRadius:{'none':'0px','sm':'4px',DEFAULT:'8px','md':'12px','lg':'16px','xl':'20px','2xl':'24px','3xl':'32px','full':'9999px','button':'8px'}}}}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.6.0/remixicon.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.0/echarts.min.js"></script>
+<style>
+:where([class^="ri-"])::before { content: "\f3c2"; }
+body {
+font-family: 'Inter', sans-serif;
+background-color: #121212;
+color: #e5e5e5;
+}
+.login-container {
+background-image: linear-gradient(135deg, #1e1e1e 0%, #0f0f0f 100%);
+}
+.calendar-day {
+width: 36px;
+height: 36px;
+}
+.present {
+background-color: rgba(34, 197, 94, 0.2);
+border: 1px solid #22c55e;
+}
+.absent {
+background-color: rgba(239, 68, 68, 0.2);
+border: 1px solid #ef4444;
+}
+.holiday {
+background-color: rgba(234, 179, 8, 0.2);
+border: 1px solid #eab308;
+}
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+-webkit-appearance: none;
+margin: 0;
+}
+</style>
+
+<!-- Firebase SDKs via CDN -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+
+</head>
+<body class="min-h-screen">
+<div id="login-page" class="flex flex-col h-screen">
+<div class="login-container flex-1 flex flex-col items-center justify-center px-6 py-12">
+<div class="w-full max-w-sm">
+<div class="text-center mb-8">
+<h1 class="font-['Pacifico'] text-4xl text-primary mb-2">logo</h1>
+<p class="text-gray-400">Your Path to Academic Excellence</p>
+</div>
+<div class="bg-gray-900 rounded-lg shadow-lg p-6 mb-6">
+<h2 class="text-xl font-semibold text-white mb-6 text-center">Sign In</h2>
+<div class="flex mb-6 rounded-lg overflow-hidden">
+<button id="student-tab" class="flex-1 py-2 px-4 text-center text-white bg-primary font-medium text-sm">Student</button>
+<button id="teacher-tab" class="flex-1 py-2 px-4 text-center text-gray-400 bg-gray-800 font-medium text-sm">Teacher</button>
+<button id="admin-tab" class="flex-1 py-2 px-4 text-center text-gray-400 bg-gray-800 font-medium text-sm">Admin</button>
+</div>
+<form id="login-form">
+<div class="mb-4">
+<label for="email" class="block text-sm font-medium text-gray-400 mb-1">Email</label>
+<div class="relative">
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+<i class="ri-mail-line text-gray-500"></i>
+</div>
+<input type="email" id="email" class="bg-gray-800 text-white text-sm rounded-button block w-full pl-10 pr-3 py-2.5 border-none focus:ring-2 focus:ring-primary" placeholder="Enter your email">
+</div>
+</div>
+<div class="mb-4">
+<label for="password" class="block text-sm font-medium text-gray-400 mb-1">Password</label>
+<div class="relative">
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+<i class="ri-lock-line text-gray-500"></i>
+</div>
+<input type="password" id="password" class="bg-gray-800 text-white text-sm rounded-button block w-full pl-10 pr-3 py-2.5 border-none focus:ring-2 focus:ring-primary" placeholder="Enter your password">
+</div>
+</div>
+<div class="flex items-center justify-between mb-6">
+<div class="flex items-center">
+<input id="remember-me" type="checkbox" class="h-4 w-4 bg-gray-800 border-gray-700 rounded text-primary focus:ring-primary">
+<label for="remember-me" class="ml-2 block text-sm text-gray-400">Remember me</label>
+</div>
+<a href="#" class="text-sm font-medium text-primary hover:text-blue-400">Forgot password?</a>
+</div>
+<button type="button" id="login-button" class="w-full bg-primary text-white py-2.5 px-4 rounded-button font-medium hover:bg-blue-600 transition duration-200 cursor-pointer !rounded-button">Sign In</button>
+</form>
+</div>
+<p class="text-center text-sm text-gray-500">
+Don't have an account? <a href="#" class="font-medium text-primary hover:text-blue-400">Contact administrator</a>
+</p>
+</div>
+</div>
+</div>
+<div id="dashboard-page" class="hidden h-screen flex flex-col">
+<!-- Nav Bar -->
+<nav class="bg-gray-900 shadow-md fixed w-full top-0 z-50">
+<div class="px-4 py-3 flex justify-between items-center">
+<div class="flex items-center">
+<button id="menu-toggle" class="mr-3 text-gray-300 hover:text-white focus:outline-none w-8 h-8 flex items-center justify-center cursor-pointer">
+<i class="ri-menu-line ri-lg"></i>
+</button>
+<h1 class="font-['Pacifico'] text-xl text-primary">logo</h1>
+</div>
+<div class="flex items-center space-x-4">
+<div class="relative">
+<button class="text-gray-300 hover:text-white focus:outline-none w-8 h-8 flex items-center justify-center cursor-pointer">
+<i class="ri-notification-3-line ri-lg"></i>
+<span class="absolute top-0 right-0 h-4 w-4 bg-red-500 rounded-full text-xs flex items-center justify-center">3</span>
+</button>
+</div>
+<div class="flex items-center space-x-2">
+<div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white">
+<span class="text-sm font-medium">JS</span>
+</div>
+<span class="text-sm font-medium text-gray-300 hidden sm:inline-block">John Smith</span>
+</div>
+</div>
+</div>
+</nav>
+<!-- Main Content -->
+<div class="flex flex-1 pt-14">
+<!-- Sidebar -->
+<aside id="sidebar" class="bg-gray-900 w-64 fixed h-full z-40 transition-all duration-300 transform -translate-x-full md:translate-x-0">
+<div class="h-full flex flex-col overflow-y-auto">
+<div class="px-4 py-5">
+<div class="flex items-center pb-4 border-b border-gray-800">
+<div class="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white">
+<span class="text-sm font-medium">JS</span>
+</div>
+<div class="ml-3">
+<p class="text-sm font-medium text-white">John Smith</p>
+<p class="text-xs text-gray-400">Student</p>
+</div>
+</div>
+</div>
+<nav class="flex-1 px-2 py-4 space-y-1">
+<a href="#" class="flex items-center px-4 py-3 text-gray-300 rounded-lg bg-gray-800 group">
+<div class="w-6 h-6 flex items-center justify-center">
+<i class="ri-dashboard-line ri-lg"></i>
+</div>
+<span class="ml-3 text-sm font-medium">Dashboard</span>
+</a>
+<a href="#" class="flex items-center px-4 py-3 text-gray-400 rounded-lg hover:bg-gray-800 group">
+<div class="w-6 h-6 flex items-center justify-center">
+<i class="ri-live-line ri-lg"></i>
+</div>
+<span class="ml-3 text-sm font-medium">Live Lectures</span>
+</a>
+<a href="#" class="flex items-center px-4 py-3 text-gray-400 rounded-lg hover:bg-gray-800 group">
+<div class="w-6 h-6 flex items-center justify-center">
+<i class="ri-book-open-line ri-lg"></i>
+</div>
+<span class="ml-3 text-sm font-medium">Study Materials</span>
+</a>
+<a href="#" class="flex items-center px-4 py-3 text-gray-400 rounded-lg hover:bg-gray-800 group">
+<div class="w-6 h-6 flex items-center justify-center">
+<i class="ri-file-list-3-line ri-lg"></i>
+</div>
+<span class="ml-3 text-sm font-medium">Homework</span>
+</a>
+<a href="#" class="flex items-center px-4 py-3 text-gray-400 rounded-lg hover:bg-gray-800 group">
+<div class="w-6 h-6 flex items-center justify-center">
+<i class="ri-notification-4-line ri-lg"></i>
+</div>
+<span class="ml-3 text-sm font-medium">Notices</span>
+</a>
+<a href="#" class="flex items-center px-4 py-3 text-gray-400 rounded-lg hover:bg-gray-800 group">
+<div class="w-6 h-6 flex items-center justify-center">
+<i class="ri-calendar-check-line ri-lg"></i>
+</div>
+<span class="ml-3 text-sm font-medium">Attendance</span>
+</a>
+<a href="#" class="flex items-center px-4 py-3 text-gray-400 rounded-lg hover:bg-gray-800 group">
+<div class="w-6 h-6 flex items-center justify-center">
+<i class="ri-bar-chart-2-line ri-lg"></i>
+</div>
+<span class="ml-3 text-sm font-medium">Test Results</span>
+</a>
+</nav>
+<div class="px-4 py-4 border-t border-gray-800">
+<button id="logout-button" class="flex items-center w-full px-4 py-2 text-gray-400 rounded-lg hover:bg-gray-800 group cursor-pointer">
+<div class="w-6 h-6 flex items-center justify-center">
+<i class="ri-logout-box-line ri-lg"></i>
+</div>
+<span class="ml-3 text-sm font-medium">Sign Out</span>
+</button>
+</div>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 ml-0 md:ml-64 bg-gray-900 min-h-screen pb-20">
+<div class="p-6">
+<div class="mb-8">
+<h2 class="text-2xl font-bold text-white">Welcome back, John!</h2>
+<p class="text-gray-400">Friday, April 25, 2025</p>
+</div>
+<!-- Stats Cards -->
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+<div class="bg-gray-800 rounded-lg p-4 shadow-md">
+<div class="flex items-center justify-between mb-2">
+<h3 class="text-sm font-medium text-gray-400">Attendance</h3>
+<div class="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center">
+<i class="ri-user-follow-line text-blue-500"></i>
+</div>
+</div>
+<p class="text-2xl font-bold text-white">92%</p>
+<p class="text-xs text-gray-400">This month</p>
+</div>
+<div class="bg-gray-800 rounded-lg p-4 shadow-md">
+<div class="flex items-center justify-between mb-2">
+<h3 class="text-sm font-medium text-gray-400">Assignments</h3>
+<div class="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center">
+<i class="ri-file-list-3-line text-purple-500"></i>
+</div>
+</div>
+<p class="text-2xl font-bold text-white">3</p>
+<p class="text-xs text-gray-400">Pending</p>
+</div>
+<div class="bg-gray-800 rounded-lg p-4 shadow-md">
+<div class="flex items-center justify-between mb-2">
+<h3 class="text-sm font-medium text-gray-400">Average Score</h3>
+<div class="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center">
+<i class="ri-bar-chart-2-line text-green-500"></i>
+</div>
+</div>
+<p class="text-2xl font-bold text-white">85%</p>
+<p class="text-xs text-gray-400">Last 3 tests</p>
+</div>
+<div class="bg-gray-800 rounded-lg p-4 shadow-md">
+<div class="flex items-center justify-between mb-2">
+<h3 class="text-sm font-medium text-gray-400">Live Classes</h3>
+<div class="w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center">
+<i class="ri-live-line text-red-500"></i>
+</div>
+</div>
+<p class="text-2xl font-bold text-white">2</p>
+<p class="text-xs text-gray-400">Today</p>
+</div>
+</div>
+<!-- Live Classes & Notices -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+<div class="lg:col-span-2 bg-gray-800 rounded-lg shadow-md">
+<div class="p-4 border-b border-gray-700">
+<h3 class="text-lg font-semibold text-white">Upcoming Live Lectures</h3>
+</div>
+<div class="p-4">
+<div class="space-y-4">
+<div class="flex items-center p-3 bg-gray-700/50 rounded-lg">
+<div class="w-12 h-12 rounded-lg bg-blue-500/20 flex items-center justify-center text-blue-500">
+<i class="ri-live-line ri-lg"></i>
+</div>
+<div class="ml-4 flex-1">
+<div class="flex items-center justify-between">
+<h4 class="text-sm font-medium text-white">Advanced Mathematics</h4>
+<span class="text-xs font-medium text-green-500 bg-green-500/20 px-2 py-1 rounded">Live Now</span>
+</div>
+<p class="text-xs text-gray-400 mt-1">Prof. Emily Johnson • 10:00 AM - 11:30 AM</p>
+</div>
+<button class="ml-4 bg-primary text-white text-xs font-medium px-3 py-1.5 rounded-button cursor-pointer !rounded-button">Join</button>
+</div>
+<div class="flex items-center p-3 bg-gray-700/50 rounded-lg">
+<div class="w-12 h-12 rounded-lg bg-purple-500/20 flex items-center justify-center text-purple-500">
+<i class="ri-live-line ri-lg"></i>
+</div>
+<div class="ml-4 flex-1">
+<div class="flex items-center justify-between">
+<h4 class="text-sm font-medium text-white">Physics Fundamentals</h4>
+<span class="text-xs font-medium text-gray-400">Today</span>
+</div>
+<p class="text-xs text-gray-400 mt-1">Dr. Robert Chen • 2:00 PM - 3:30 PM</p>
+</div>
+<button class="ml-4 bg-gray-700 text-gray-300 text-xs font-medium px-3 py-1.5 rounded-button cursor-pointer !rounded-button">Reminder</button>
+</div>
+<div class="flex items-center p-3 bg-gray-700/50 rounded-lg">
+<div class="w-12 h-12 rounded-lg bg-orange-500/20 flex items-center justify-center text-orange-500">
+<i class="ri-live-line ri-lg"></i>
+</div>
+<div class="ml-4 flex-1">
+<div class="flex items-center justify-between">
+<h4 class="text-sm font-medium text-white">Chemistry Lab</h4>
+<span class="text-xs font-medium text-gray-400">Tomorrow</span>
+</div>
+<p class="text-xs text-gray-400 mt-1">Prof. Sarah Williams • 9:30 AM - 11:00 AM</p>
+</div>
+<button class="ml-4 bg-gray-700 text-gray-300 text-xs font-medium px-3 py-1.5 rounded-button cursor-pointer !rounded-button">Reminder</button>
+</div>
+</div>
+<div class="mt-4 text-center">
+<a href="#" class="text-xs font-medium text-primary">View All Lectures</a>
+</div>
+</div>
+</div>
+<div class="bg-gray-800 rounded-lg shadow-md">
+<div class="p-4 border-b border-gray-700">
+<h3 class="text-lg font-semibold text-white">Recent Notices</h3>
+</div>
+<div class="p-4">
+<div class="space-y-4">
+<div class="p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+<div class="flex items-center justify-between mb-2">
+<h4 class="text-sm font-medium text-white">Exam Schedule Update</h4>
+<span class="text-xs text-gray-400">2h ago</span>
+</div>
+<p class="text-xs text-gray-300">Final exams for Physics and Chemistry have been rescheduled to May 10th and 12th respectively.</p>
+</div>
+<div class="p-3 bg-gray-700/50 rounded-lg">
+<div class="flex items-center justify-between mb-2">
+<h4 class="text-sm font-medium text-white">Holiday Announcement</h4>
+<span class="text-xs text-gray-400">Yesterday</span>
+</div>
+<p class="text-xs text-gray-300">The institute will remain closed on April 30th due to Foundation Day celebrations.</p>
+</div>
+<div class="p-3 bg-gray-700/50 rounded-lg">
+<div class="flex items-center justify-between mb-2">
+<h4 class="text-sm font-medium text-white">New Study Material</h4>
+<span class="text-xs text-gray-400">2d ago</span>
+</div>
+<p class="text-xs text-gray-300">Advanced Mathematics revision notes have been uploaded to the study materials section.</p>
+</div>
+</div>
+<div class="mt-4 text-center">
+<a href="#" class="text-xs font-medium text-primary">View All Notices</a>
+</div>
+</div>
+</div>
+</div>
+<!-- Performance & Attendance -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+<div class="lg:col-span-2 bg-gray-800 rounded-lg shadow-md">
+<div class="p-4 border-b border-gray-700">
+<h3 class="text-lg font-semibold text-white">Performance Analytics</h3>
+</div>
+<div class="p-4">
+<div id="performance-chart" class="w-full h-64"></div>
+</div>
+</div>
+<div class="bg-gray-800 rounded-lg shadow-md">
+<div class="p-4 border-b border-gray-700">
+<h3 class="text-lg font-semibold text-white">April Attendance</h3>
+</div>
+<div class="p-4">
+<div class="grid grid-cols-7 gap-1 text-center">
+<div class="text-xs font-medium text-gray-400">Mon</div>
+<div class="text-xs font-medium text-gray-400">Tue</div>
+<div class="text-xs font-medium text-gray-400">Wed</div>
+<div class="text-xs font-medium text-gray-400">Thu</div>
+<div class="text-xs font-medium text-gray-400">Fri</div>
+<div class="text-xs font-medium text-gray-400">Sat</div>
+<div class="text-xs font-medium text-gray-400">Sun</div>
+<div class="calendar-day flex items-center justify-center rounded-full text-gray-400">1</div>
+<div class="calendar-day present flex items-center justify-center rounded-full">2</div>
+<div class="calendar-day present flex items-center justify-center rounded-full">3</div>
+<div class="calendar-day present flex items-center justify-center rounded-full">4</div>
+<div class="calendar-day present flex items-center justify-center rounded-full">5</div>
+<div class="calendar-day holiday flex items-center justify-center rounded-full">6</div>
+<div class="calendar-day holiday flex items-center justify-center rounded-full">7</div>
+<div class="calendar-day present flex items-center justify-center rounded-full">8</div>
+<div class="calendar-day present flex items-center justify-center rounded-full">9</div>
+<div class="calendar-day absent flex items-center justify-center rounded-full">10</div>
+<div class="calendar-day present flex items-center justify-center rounded-full">11</div>
+<div class="calendar-day present flex items-center justify-center rounded-full">12</div>
+<div class="calendar-day holiday flex items-center justify-center rounded-full">13</div>
+<div class="calendar-day holiday flex items-center justify-center rounded-full">14</div>
+<div class="calendar-day present flex items-center justify-center rounded-full">15</div>
+<div class="calendar-day present flex items-center justify-center rounded-full">16</div>
+<div class="calendar-day present flex items-center justify-center rounded-full">17</div>
+<div class="calendar-day present flex items-center justify-center rounded-full">18</div>
+<div class="calendar-day present flex items-center justify-center rounded-full">19</div>
+<div class="calendar-day holiday flex items-center justify-center rounded-full">20</div>
+<div class="calendar-day holiday flex items-center justify-center rounded-full">21</div>
+<div class="calendar-day present flex items-center justify-center rounded-full">22</div>
+<div class="calendar-day present flex items-center justify-center rounded-full">23</div>
+<div class="calendar-day present flex items-center justify-center rounded-full">24</div>
+<div class="calendar-day present flex items-center justify-center rounded-full">25</div>
+<div class="calendar-day flex items-center justify-center rounded-full text-gray-500">26</div>
+<div class="calendar-day flex items-center justify-center rounded-full text-gray-500">27</div>
+<div class="calendar-day flex items-center justify-center rounded-full text-gray-500">28</div>
+<div class="calendar-day flex items-center justify-center rounded-full text-gray-500">29</div>
+<div class="calendar-day flex items-center justify-center rounded-full text-gray-500">30</div>
+<div class="calendar-day flex items-center justify-center rounded-full text-gray-500"></div>
+<div class="calendar-day flex items-center justify-center rounded-full text-gray-500"></div>
+<div class="calendar-day flex items-center justify-center rounded-full text-gray-500"></div>
+<div class="calendar-day flex items-center justify-center rounded-full text-gray-500"></div>
+<div class="calendar-day flex items-center justify-center rounded-full text-gray-500"></div>
+</div>
+<div class="mt-4 flex items-center justify-between">
+<div class="flex items-center">
+<div class="w-3 h-3 bg-green-500/30 border border-green-500 rounded-full"></div>
+<span class="ml-2 text-xs text-gray-400">Present</span>
+</div>
+<div class="flex items-center">
+<div class="w-3 h-3 bg-red-500/30 border border-red-500 rounded-full"></div>
+<span class="ml-2 text-xs text-gray-400">Absent</span>
+</div>
+<div class="flex items-center">
+<div class="w-3 h-3 bg-yellow-500/30 border border-yellow-500 rounded-full"></div>
+<span class="ml-2 text-xs text-gray-400">Holiday</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<section id="teacher-panel" class="hidden p-6">
+  <h2 class="text-xl font-bold text-white mb-4">Teacher Panel</h2>
+  <div class="bg-gray-800 p-4 rounded-lg mb-6">
+    <h3 class="text-lg font-semibold text-white mb-2">Mark Attendance</h3>
+    <div id="attendance-list" class="space-y-2"></div>
+    <button onclick="submitAttendance()" class="mt-4 bg-primary text-white px-4 py-2 rounded">Submit Attendance</button>
+  </div>
+  <div class="bg-gray-800 p-4 rounded-lg mb-6">
+    <h3 class="text-lg font-semibold text-white mb-2">Upload Homework</h3>
+    <input id="homework-title" class="mb-2 w-full px-2 py-1 rounded" placeholder="Title" />
+    <textarea id="homework-desc" class="mb-2 w-full px-2 py-1 rounded" placeholder="Description"></textarea>
+    <input type="file" id="homework-file" class="mb-2 w-full" />
+    <button onclick="uploadHomework()" class="bg-primary text-white px-4 py-2 rounded">Upload</button>
+  </div>
+  <div class="bg-gray-800 p-4 rounded-lg">
+    <h3 class="text-lg font-semibold text-white mb-2">Upload Results</h3>
+    <input id="result-student" class="mb-2 w-full px-2 py-1 rounded" placeholder="Student Email or ID" />
+    <input id="result-subject" class="mb-2 w-full px-2 py-1 rounded" placeholder="Subject" />
+    <input id="result-marks" type="number" class="mb-2 w-full px-2 py-1 rounded" placeholder="Marks" />
+    <button onclick="uploadResult()" class="bg-primary text-white px-4 py-2 rounded">Submit Result</button>
+  </div>
+</section>
+
+</main>
+</div>
+<!-- Tab Bar -->
+<div class="fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-gray-800 shadow-lg md:hidden z-50">
+<div class="grid grid-cols-5 h-16">
+<a href="#" class="flex flex-col items-center justify-center text-primary">
+<div class="w-6 h-6 flex items-center justify-center">
+<i class="ri-dashboard-line"></i>
+</div>
+<span class="mt-1 text-xs">Home</span>
+</a>
+<a href="#" class="flex flex-col items-center justify-center text-gray-500">
+<div class="w-6 h-6 flex items-center justify-center">
+<i class="ri-live-line"></i>
+</div>
+<span class="mt-1 text-xs">Live</span>
+</a>
+<a href="#" class="flex flex-col items-center justify-center text-gray-500">
+<div class="w-6 h-6 flex items-center justify-center">
+<i class="ri-book-open-line"></i>
+</div>
+<span class="mt-1 text-xs">Study</span>
+</a>
+<a href="#" class="flex flex-col items-center justify-center text-gray-500">
+<div class="w-6 h-6 flex items-center justify-center">
+<i class="ri-file-list-3-line"></i>
+</div>
+<span class="mt-1 text-xs">Tasks</span>
+</a>
+<a href="#" class="flex flex-col items-center justify-center text-gray-500">
+<div class="w-6 h-6 flex items-center justify-center">
+<i class="ri-user-line"></i>
+</div>
+<span class="mt-1 text-xs">Profile</span>
+</a>
+</div>
+</div>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+// Login Page Functionality
+const studentTab = document.getElementById('student-tab');
+const teacherTab = document.getElementById('teacher-tab');
+const adminTab = document.getElementById('admin-tab');
+const loginButton = document.getElementById('login-button');
+const logoutButton = document.getElementById('logout-button');
+const loginPage = document.getElementById('login-page');
+const dashboardPage = document.getElementById('dashboard-page');
+// Tab switching
+studentTab.addEventListener('click', function() {
+studentTab.classList.add('bg-primary', 'text-white');
+studentTab.classList.remove('bg-gray-800', 'text-gray-400');
+teacherTab.classList.remove('bg-primary', 'text-white');
+teacherTab.classList.add('bg-gray-800', 'text-gray-400');
+adminTab.classList.remove('bg-primary', 'text-white');
+adminTab.classList.add('bg-gray-800', 'text-gray-400');
+});
+teacherTab.addEventListener('click', function() {
+teacherTab.classList.add('bg-primary', 'text-white');
+teacherTab.classList.remove('bg-gray-800', 'text-gray-400');
+studentTab.classList.remove('bg-primary', 'text-white');
+studentTab.classList.add('bg-gray-800', 'text-gray-400');
+adminTab.classList.remove('bg-primary', 'text-white');
+adminTab.classList.add('bg-gray-800', 'text-gray-400');
+});
+adminTab.addEventListener('click', function() {
+adminTab.classList.add('bg-primary', 'text-white');
+adminTab.classList.remove('bg-gray-800', 'text-gray-400');
+studentTab.classList.remove('bg-primary', 'text-white');
+studentTab.classList.add('bg-gray-800', 'text-gray-400');
+teacherTab.classList.remove('bg-primary', 'text-white');
+teacherTab.classList.add('bg-gray-800', 'text-gray-400');
+});
+// Login functionality
+loginButton.addEventListener('click', function() {
+const email = document.getElementById('email').value;
+const password = document.getElementById('password').value;
+if (email && password) {
+loginPage.classList.add('hidden');
+dashboardPage.classList.remove('hidden');
+} else {
+// Show error
+const errorModal = document.createElement('div');
+errorModal.className = 'fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50';
+errorModal.innerHTML = `
+<div class="bg-gray-800 rounded-lg p-6 max-w-sm mx-auto">
+<div class="flex items-center justify-between mb-4">
+<h3 class="text-lg font-medium text-white">Error</h3>
+<button class="text-gray-400 hover:text-white">
+<i class="ri-close-line ri-lg"></i>
+</button>
+</div>
+<p class="text-gray-300 mb-4">Please enter both email and password.</p>
+<button class="w-full bg-primary text-white py-2 px-4 rounded-button font-medium hover:bg-blue-600 transition duration-200 cursor-pointer !rounded-button">OK</button>
+</div>
+`;
+document.body.appendChild(errorModal);
+// Close modal on button click
+errorModal.querySelector('button').addEventListener('click', function() {
+document.body.removeChild(errorModal);
+});
+}
+});
+// Logout functionality
+logoutButton.addEventListener('click', function() {
+dashboardPage.classList.add('hidden');
+loginPage.classList.remove('hidden');
+// Reset form
+document.getElementById('email').value = '';
+document.getElementById('password').value = '';
+document.getElementById('remember-me').checked = false;
+});
+// Mobile menu toggle
+const menuToggle = document.getElementById('menu-toggle');
+const sidebar = document.getElementById('sidebar');
+menuToggle.addEventListener('click', function() {
+if (sidebar.classList.contains('-translate-x-full')) {
+sidebar.classList.remove('-translate-x-full');
+sidebar.classList.add('translate-x-0');
+} else {
+sidebar.classList.add('-translate-x-full');
+sidebar.classList.remove('translate-x-0');
+}
+});
+// Initialize performance chart
+const performanceChart = echarts.init(document.getElementById('performance-chart'));
+const option = {
+backgroundColor: 'transparent',
+tooltip: {
+trigger: 'axis',
+backgroundColor: '#1f2937',
+borderColor: '#374151',
+textStyle: {
+color: '#e5e7eb'
+}
+},
+legend: {
+data: ['Mathematics', 'Physics', 'Chemistry'],
+textStyle: {
+color: '#9ca3af'
+},
+top: 0,
+right: 0
+},
+grid: {
+left: '3%',
+right: '4%',
+bottom: '3%',
+top: '15%',
+containLabel: true
+},
+xAxis: {
+type: 'category',
+data: ['Test 1', 'Test 2', 'Test 3', 'Test 4', 'Test 5'],
+axisLine: {
+lineStyle: {
+color: '#4b5563'
+}
+},
+axisLabel: {
+color: '#9ca3af'
+}
+},
+yAxis: {
+type: 'value',
+min: 0,
+max: 100,
+axisLine: {
+lineStyle: {
+color: '#4b5563'
+}
+},
+axisLabel: {
+color: '#9ca3af',
+formatter: '{value}%'
+},
+splitLine: {
+lineStyle: {
+color: '#374151'
+}
+}
+},
+series: [
+{
+name: 'Mathematics',
+type: 'line',
+data: [78, 82, 80, 85, 90],
+smooth: true,
+symbol: 'circle',
+symbolSize: 8,
+itemStyle: {
+color: '#3b82f6'
+},
+lineStyle: {
+width: 3
+}
+},
+{
+name: 'Physics',
+type: 'line',
+data: [82, 75, 80, 78, 82],
+smooth: true,
+symbol: 'circle',
+symbolSize: 8,
+itemStyle: {
+color: '#8b5cf6'
+},
+lineStyle: {
+width: 3
+}
+},
+{
+name: 'Chemistry',
+type: 'line',
+data: [70, 75, 82, 88, 85],
+smooth: true,
+symbol: 'circle',
+symbolSize: 8,
+itemStyle: {
+color: '#ec4899'
+},
+lineStyle: {
+width: 3
+}
+}
+]
+};
+performanceChart.setOption(option);
+// Responsive chart
+window.addEventListener('resize', function() {
+performanceChart.resize();
+});
+});
+</script>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyDjZTntNd8egiR2mFWYOXMEDAxbKmjUcsk",
+    authDomain: "ansh-33eb9.firebaseapp.com",
+    projectId: "ansh-33eb9",
+    storageBucket: "ansh-33eb9.firebasestorage.app",
+    messagingSenderId: "684959432249",
+    appId: "1:684959432249:web:f8b288b1f17c9cc394d7e8",
+    measurementId: "G-KN0YWG4ENE"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  firebase.analytics();
+
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+  const storage = firebase.storage();
+</script>
+
+<script>
+function showTeacherPanel() {
+  document.getElementById('teacher-panel').classList.remove('hidden');
+}
+function hideTeacherPanel() {
+  document.getElementById('teacher-panel').classList.add('hidden');
+}
+const students = ['student1@example.com', 'student2@example.com'];
+function loadAttendanceList() {
+  const container = document.getElementById('attendance-list');
+  container.innerHTML = '';
+  students.forEach(email => {
+    const item = document.createElement('div');
+    item.className = "flex items-center text-white";
+    item.innerHTML = `
+      <label class="flex items-center space-x-2">
+        <input type="checkbox" value="${email}" class="attendance-checkbox" />
+        <span>${email}</span>
+      </label>
+    `;
+    container.appendChild(item);
+  });
+}
+function submitAttendance() {
+  const checkboxes = document.querySelectorAll('.attendance-checkbox');
+  const attendanceData = {};
+  checkboxes.forEach(cb => {
+    attendanceData[cb.value] = cb.checked ? 'present' : 'absent';
+  });
+  const dateKey = new Date().toISOString().split('T')[0];
+  db.collection('attendance').doc(dateKey).set(attendanceData)
+    .then(() => alert("Attendance marked!"))
+    .catch(err => alert("Failed to submit attendance: " + err));
+}
+function uploadHomework() {
+  const title = document.getElementById('homework-title').value;
+  const desc = document.getElementById('homework-desc').value;
+  const file = document.getElementById('homework-file').files[0];
+  if (!file) return alert("Please select a file.");
+  const ref = storage.ref(`homework/${file.name}`);
+  ref.put(file).then(snapshot => snapshot.ref.getDownloadURL())
+    .then(url => db.collection("homework").add({
+      title, desc, fileURL: url,
+      timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    }))
+    .then(() => alert("Homework uploaded!"))
+    .catch(err => alert("Upload failed: " + err));
+}
+function uploadResult() {
+  const student = document.getElementById('result-student').value;
+  const subject = document.getElementById('result-subject').value;
+  const marks = parseInt(document.getElementById('result-marks').value);
+  if (!student || !subject || isNaN(marks)) return alert("Please fill all fields correctly.");
+  db.collection("results").add({
+    student, subject, marks,
+    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+  }).then(() => alert("Result submitted."))
+    .catch(err => alert("Failed to submit result: " + err));
+}
+</script>
+</body>
+</html>
